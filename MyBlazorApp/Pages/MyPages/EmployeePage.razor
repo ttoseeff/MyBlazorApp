@@ -1,0 +1,108 @@
+﻿@page "/Data/Employee"
+
+@using DataAccessLibrary
+@using DataAccessLibrary.Models
+
+@inject IEmployeeData _db
+
+<h1>Employees</h1>
+
+<EditForm Model="@employeeModel" OnValidSubmit="@InsertEmployee">
+    <InputText id="name" @bind-Value="employeeModel.Name" placeholder="Name" />
+    <InputText id="email" @bind-Value="employeeModel.Email" placeholder="Email" />
+    <InputText id="department" @bind-Value="employeeModel.Department" placeholder="Department" />
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+@if (employees is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <td>@employee.Name</td>
+                    <td>@employee.Email</td>
+                    <td>@employee.Department</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="@(e => EditEmployee(employee.Id))">Edit</button>
+                        <button class="btn btn-danger" @onclick="@(e => DeleteEmployee(employee.Id))">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Employee> employees;
+    private Employee employeeModel = new Employee();
+
+    protected override async Task OnInitializedAsync()
+    {
+        employees = await _db.GetEmployees();
+    }
+
+    private void InsertEmployee()
+    {
+        if (employeeModel.Id != Guid.Empty)
+        {
+            UpdateEmployee();
+        }
+        else
+        {
+            _db.InsertEmployee(employeeModel);
+            employees.Add(employeeModel);
+        }
+        employeeModel = new Employee();
+    }
+
+    private void EditEmployee(Guid Id)
+    {
+        var EditEmployee = employees.Where(e => e.Id == Id).FirstOrDefault();
+        if (EditEmployee != null)
+        {
+            employeeModel.Name = EditEmployee.Name;
+            employeeModel.Email = EditEmployee.Email;
+            employeeModel.Department = EditEmployee.Department;
+            employeeModel.Id = Id;
+        }
+    }
+
+    private void UpdateEmployee()
+    {
+        _db.UpdateEmployee(employeeModel);
+        var EditEmployee = employees.Where(e => e.Id == employeeModel.Id).FirstOrDefault();
+        if (EditEmployee != null)
+        {
+            EditEmployee.Name = employeeModel.Name;
+            EditEmployee.Email = employeeModel.Email;
+            EditEmployee.Department = employeeModel.Department;
+        }
+
+        employeeModel = new Employee();
+    }
+
+    private void DeleteEmployee(Guid Id)
+    {
+        var deleteEmployee = employees.Where(e => e.Id == Id).FirstOrDefault();
+        if (deleteEmployee != null)
+        {
+            _db.DeleteEmployee(deleteEmployee);
+            employees.Remove(deleteEmployee);
+        }
+    }
+}
